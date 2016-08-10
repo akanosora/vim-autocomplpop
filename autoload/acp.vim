@@ -272,18 +272,27 @@ function s:unmapForMappingDriven()
   let s:keysMappingDriven = []
 endfunction
 
-"
+" Set temporary variables
 function s:setTempOption(group, name, value)
-  call extend(s:tempOptionSet[a:group], { a:name : eval('&' . a:name) }, 'keep')
-  execute printf('let &%s = a:value', a:name)
+  if !exists('s:origMap[a:group]')
+    let s:origMap[a:group] = {}
+  endif
+  if !exists('s:origMap[a:group][a:name]')
+    let s:origMap[a:group][a:name] = eval(a:name)
+  endif
+  execute 'let ' . a:name . ' = a:value'
 endfunction
 
-"
+" Restore original variables and clean up
 function s:restoreTempOptions(group)
-  for [name, value] in items(s:tempOptionSet[a:group])
-    execute printf('let &%s = value', name)
+  if !exists('s:origMap[a:group]')
+    return
+  endif
+  for [name, value] in items(s:origMap[a:group])
+    execute 'let ' . name . ' = value'
+    unlet value " to avoid E706
   endfor
-  let s:tempOptionSet[a:group] = {}
+  unlet s:origMap[a:group]
 endfunction
 
 "
@@ -375,15 +384,15 @@ function s:feedPopup()
   " popup menu is visible, another popup is not available unless input <C-e>
   " or try popup once. So first completion is duplicated.
   call insert(s:behavsCurrent, s:behavsCurrent[s:iBehavs])
-  call s:setTempOption(s:GROUP0, 'spell', 0)
-  call s:setTempOption(s:GROUP0, 'completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
-  call s:setTempOption(s:GROUP0, 'complete', g:acp_completeOption)
-  call s:setTempOption(s:GROUP0, 'ignorecase', g:acp_ignorecaseOption)
+  call s:setTempOption(s:GROUP0, '&spell', 0)
+  call s:setTempOption(s:GROUP0, '&completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
+  call s:setTempOption(s:GROUP0, '&complete', g:acp_completeOption)
+  call s:setTempOption(s:GROUP0, '&ignorecase', g:acp_ignorecaseOption)
   " NOTE: With CursorMovedI driven, Set 'lazyredraw' to avoid flickering.
   "       With Mapping driven, set 'nolazyredraw' to make a popup menu visible.
-  call s:setTempOption(s:GROUP0, 'lazyredraw', !g:acp_mappingDriven)
+  call s:setTempOption(s:GROUP0, '&lazyredraw', !g:acp_mappingDriven)
   " NOTE: 'textwidth' must be restored after <C-e>.
-  call s:setTempOption(s:GROUP1, 'textwidth', 0)
+  call s:setTempOption(s:GROUP1, '&textwidth', 0)
   call s:setCompletefunc()
   call feedkeys(s:behavsCurrent[s:iBehavs].command . "\<C-r>=acp#onPopupPost()\<CR>", 'n')
   return '' " this function is called by <C-r>=
@@ -403,7 +412,7 @@ endfunction
 "
 function s:setCompletefunc()
   if exists('s:behavsCurrent[s:iBehavs].completefunc')
-    call s:setTempOption(0, 'completefunc', s:behavsCurrent[s:iBehavs].completefunc)
+    call s:setTempOption(s:GROUP0, '&completefunc', s:behavsCurrent[s:iBehavs].completefunc)
   endif
 endfunction
 
@@ -436,12 +445,12 @@ endfunction
 "=============================================================================
 " INITIALIZATION {{{1
 
-let s:GROUP0 = 0
-let s:GROUP1 = 1
+let s:GROUP0 = "AutoComplPop0"
+let s:GROUP1 = "AutoComplPop1"
 let s:lockCount = 0
 let s:behavsCurrent = []
 let s:iBehavs = 0
-let s:tempOptionSet = [{}, {}]
+let s:origMap = {}
 let s:snipItems = {}
 
 " }}}1

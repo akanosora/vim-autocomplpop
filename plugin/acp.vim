@@ -18,7 +18,7 @@ let g:loaded_acp = 1
 " FUNCTION: {{{1
 
 "
-function s:defineOption(name, default)
+function s:defineVariableDefault(name, default)
   if !exists(a:name)
     let {a:name} = a:default
   endif
@@ -125,27 +125,27 @@ endfunction
 " INITIALIZATION {{{1
 
 "-----------------------------------------------------------------------------
-call s:defineOption('g:acp_enableAtStartup', 1)
-call s:defineOption('g:acp_mappingDriven', 0)
-call s:defineOption('g:acp_ignorecaseOption', 1)
-call s:defineOption('g:acp_completeOption', '.,w,b,k')
-call s:defineOption('g:acp_completeoptPreview', 0)
-call s:defineOption('g:acp_behaviorUserDefinedFunction', '')
-call s:defineOption('g:acp_behaviorUserDefinedMeets', '')
-call s:defineOption('g:acp_behaviorSnipmateLength', -1)
-call s:defineOption('g:acp_behaviorKeywordCommand', "\<C-n>")
-call s:defineOption('g:acp_behaviorKeywordLength', 2)
-call s:defineOption('g:acp_behaviorKeywordIgnores', [])
-call s:defineOption('g:acp_behaviorFileLength', 0)
-call s:defineOption('g:acp_behaviorRubyOmniMethodLength', 0)
-call s:defineOption('g:acp_behaviorRubyOmniSymbolLength', 1)
-call s:defineOption('g:acp_behaviorPythonOmniLength', 0)
-call s:defineOption('g:acp_behaviorPerlOmniLength', -1)
-call s:defineOption('g:acp_behaviorXmlOmniLength', 0)
-call s:defineOption('g:acp_behaviorHtmlOmniLength', 0)
-call s:defineOption('g:acp_behaviorCssOmniPropertyLength', 1)
-call s:defineOption('g:acp_behaviorCssOmniValueLength', 0)
-call s:defineOption('g:acp_behavior', {})
+call s:defineVariableDefault('g:acp_enableAtStartup', 1)
+call s:defineVariableDefault('g:acp_mappingDriven', 0)
+call s:defineVariableDefault('g:acp_ignorecaseOption', 1)
+call s:defineVariableDefault('g:acp_completeOption', '.,w,b,k')
+call s:defineVariableDefault('g:acp_completeoptPreview', 0)
+call s:defineVariableDefault('g:acp_behaviorUserDefinedFunction', '')
+call s:defineVariableDefault('g:acp_behaviorUserDefinedMeets', '')
+call s:defineVariableDefault('g:acp_behaviorSnipmateLength', -1)
+call s:defineVariableDefault('g:acp_behaviorKeywordCommand', "\<C-n>")
+call s:defineVariableDefault('g:acp_behaviorKeywordLength', 2)
+call s:defineVariableDefault('g:acp_behaviorKeywordIgnores', [])
+call s:defineVariableDefault('g:acp_behaviorFileLength', 0)
+call s:defineVariableDefault('g:acp_behaviorRubyOmniMethodLength', 0)
+call s:defineVariableDefault('g:acp_behaviorRubyOmniSymbolLength', 1)
+call s:defineVariableDefault('g:acp_behaviorPythonOmniLength', 0)
+call s:defineVariableDefault('g:acp_behaviorPerlOmniLength', -1)
+call s:defineVariableDefault('g:acp_behaviorXmlOmniLength', 0)
+call s:defineVariableDefault('g:acp_behaviorHtmlOmniLength', 0)
+call s:defineVariableDefault('g:acp_behaviorCssOmniPropertyLength', 1)
+call s:defineVariableDefault('g:acp_behaviorCssOmniValueLength', 0)
+call s:defineVariableDefault('g:acp_behavior', {})
 "-----------------------------------------------------------------------------
 call extend(g:acp_behavior, s:makeDefaultBehavior(), 'keep')
 "-----------------------------------------------------------------------------
