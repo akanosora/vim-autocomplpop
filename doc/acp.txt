@@ -279,7 +279,7 @@ OPTIONS                                                          *acp-options*
           completion. Only makes sense when "command" is "<C-x><C-u>".
 
         "meets":                                        *g:acp_behavior-meets*
-          Name of the function which dicides whether or not to attempt this
+          Name of the function which decides whether or not to attempt this
           completion. It will be attempted if this function returns non-zero.
           This function takes a text before the cursor.
 

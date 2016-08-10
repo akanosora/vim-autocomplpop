@@ -13,7 +13,8 @@ let g:loaded_autoload_acp = 1
 "=============================================================================
 " GLOBAL FUNCTIONS: {{{1
 
-"
+" For AcpEnable option
+" to enable auto-popup
 function acp#enable()
   call acp#disable()
 
@@ -24,17 +25,23 @@ function acp#enable()
   augroup END
 
   if g:acp_mappingDriven
+    " Use key mappings to trigger the popup menu
     call s:mapForMappingDriven()
   else
+    " Otherwise trigger the popup menu 
+    " after the cursor was moved in Insert mode
     autocmd AcpGlobalAutoCommand CursorMovedI * call s:feedPopup()
   endif
 
+  " Trigger the popup menu
+  " when switching to Insert mode
   nnoremap <silent> i i<C-r>=<SID>feedPopup()<CR>
   nnoremap <silent> a a<C-r>=<SID>feedPopup()<CR>
   nnoremap <silent> R R<C-r>=<SID>feedPopup()<CR>
 endfunction
 
-"
+" For AcpDisable option
+" to disable auto-popup
 function acp#disable()
   call s:unmapForMappingDriven()
   augroup AcpGlobalAutoCommand
@@ -45,12 +52,14 @@ function acp#disable()
   nnoremap R <Nop> | nunmap R
 endfunction
 
-"
+" For AcpLock option
+" to suspend auto-popup temporarily
 function acp#lock()
   let s:lockCount += 1
 endfunction
 
-"
+" For AcpUnlock option
+" to resume auto-popup from suspension
 function acp#unlock()
   let s:lockCount -= 1
   if s:lockCount < 0
@@ -59,7 +68,8 @@ function acp#unlock()
   endif
 endfunction
 
-"
+" Default 'meets' function for snipMate
+" to decide whether to attempt completion
 function acp#meetsForSnipmate(context)
   if g:acp_behaviorSnipmateLength < 0
     return 0
@@ -69,7 +79,8 @@ function acp#meetsForSnipmate(context)
   return !empty(matches) && !empty(s:getMatchingSnipItems(matches[2]))
 endfunction
 
-"
+" Default 'meets' function for anything that is a keyword
+" to decide whether to attempt completion
 function acp#meetsForKeyword(context)
   if g:acp_behaviorKeywordLength < 0
     return 0
@@ -80,13 +91,16 @@ function acp#meetsForKeyword(context)
   endif
   for ignore in g:acp_behaviorKeywordIgnores
     if stridx(ignore, matches[1]) == 0
+      " Do not attempt completion
+      " if the start of the match occurs in 'ignore'
       return 0
     endif
   endfor
   return 1
 endfunction
 
-"
+" Default 'meets' function for file names
+" to decide whether to attempt completion
 function acp#meetsForFile(context)
   if g:acp_behaviorFileLength < 0
     return 0
@@ -102,17 +116,15 @@ function acp#meetsForFile(context)
   return a:context !~ '[*/\\][/\\]\f*$\|[^[:print:]]\f*$'
 endfunction
 
-"
+" Default 'meets' function for Ruby
+" to decide whether to attempt completion
 function acp#meetsForRubyOmni(context)
-  if !has('ruby')
-    return 0
-  endif
-  if g:acp_behaviorRubyOmniMethodLength >= 0 &&
+  if has('ruby') && g:acp_behaviorRubyOmniMethodLength >= 0 &&
         \ a:context =~ '[^. \t]\(\.\|::\)\k\{' .
         \              g:acp_behaviorRubyOmniMethodLength . ',}$'
     return 1
   endif
-  if g:acp_behaviorRubyOmniSymbolLength >= 0 &&
+  if has('ruby') && g:acp_behaviorRubyOmniSymbolLength >= 0 &&
         \ a:context =~ '\(^\|[^:]\):\k\{' .
         \              g:acp_behaviorRubyOmniSymbolLength . ',}$'
     return 1
@@ -120,33 +132,38 @@ function acp#meetsForRubyOmni(context)
   return 0
 endfunction
 
-"
+" Default 'meets' function for Python
+" to decide whether to attempt completion
 function acp#meetsForPythonOmni(context)
   return has('python') && g:acp_behaviorPythonOmniLength >= 0 &&
         \ a:context =~ '\k\.\k\{' . g:acp_behaviorPythonOmniLength . ',}$'
 endfunction
 
-"
+" Default 'meets' function for Perl
+" to decide whether to attempt completion
 function acp#meetsForPerlOmni(context)
-  return g:acp_behaviorPerlOmniLength >= 0 &&
+  return has('perl') && g:acp_behaviorPerlOmniLength >= 0 &&
         \ a:context =~ '\w->\k\{' . g:acp_behaviorPerlOmniLength . ',}$'
 endfunction
 
-"
+" Default 'meets' function for Xml
+" to decide whether to attempt completion
 function acp#meetsForXmlOmni(context)
   return g:acp_behaviorXmlOmniLength >= 0 &&
         \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
         \              g:acp_behaviorXmlOmniLength . ',}$'
 endfunction
 
-"
+" Default 'meets' function for Html
+" to decide whether to attempt completion
 function acp#meetsForHtmlOmni(context)
   return g:acp_behaviorHtmlOmniLength >= 0 &&
         \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
         \              g:acp_behaviorHtmlOmniLength . ',}$'
 endfunction
 
-"
+" Default 'meets' function for Css
+" to decide whether to attempt completion
 function acp#meetsForCssOmni(context)
   if g:acp_behaviorCssOmniPropertyLength >= 0 &&
         \ a:context =~ '\(^\s\|[;{]\)\s*\k\{' .
@@ -187,21 +204,23 @@ endfunction
 
 "
 function acp#onPopupPost()
-  " to clear <C-r>= expression on command-line
-  echo ''
   if pumvisible()
+    " When a popup menu appears
     inoremap <silent> <expr> <C-h> acp#onBs()
     inoremap <silent> <expr> <BS>  acp#onBs()
-    " a command to restore to original text and select the first match
+    " To restore the original text and select the first match
     return (s:behavsCurrent[s:iBehavs].command =~# "\<C-p>" ? "\<C-n>\<Up>"
           \                                                 : "\<C-p>\<Down>")
   endif
-  let s:iBehavs += 1
-  if len(s:behavsCurrent) > s:iBehavs 
+  if s:iBehavs < len(s:behavsCurrent) - 1
+    " When no popup menu appears for the current completion method
+    " Attempt the next completion behavior if available
+    let s:iBehavs += 1
     call s:setCompletefunc()
     return printf("\<C-e>%s\<C-r>=acp#onPopupPost()\<CR>",
           \       s:behavsCurrent[s:iBehavs].command)
   else
+    " After all attempts have failed
     let s:lastUncompletable = {
           \   'word': s:getCurrentWord(),
           \   'commands': map(copy(s:behavsCurrent), 'v:val.command')[1:],
@@ -213,8 +232,7 @@ endfunction
 
 "
 function acp#onBs()
-  " using "matchstr" and not "strpart" in order to handle multi-byte
-  " characters
+  " Use "matchstr" instead of "strpart" to handle multi-byte characters
   if call(s:behavsCurrent[s:iBehavs].meets,
         \ [matchstr(s:getCurrentText(), '.*\ze.')])
     return "\<BS>"
@@ -337,8 +355,8 @@ endfunction
 
 "
 function s:feedPopup()
-  " NOTE: CursorMovedI is not triggered while the popup menu is visible. And
-  "       it will be triggered when popup menu is disappeared.
+  " NOTE: CursorMovedI will not be triggered while the popup menu is visible.
+  "       It will be triggered when popup menu has disappeared.
   if s:lockCount > 0 || pumvisible() || &paste
     return ''
   endif
