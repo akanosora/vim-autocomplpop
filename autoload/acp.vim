@@ -204,7 +204,7 @@ endfunction
 
 "
 function acp#onPopupPost()
-  if pumvisible()
+  if pumvisible() && exists('s:behavsCurrent[s:iBehavs]')
     " When a popup menu appears
     inoremap <silent> <expr> <C-h> acp#onBs()
     inoremap <silent> <expr> <BS>  acp#onBs()
