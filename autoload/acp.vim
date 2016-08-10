@@ -4,9 +4,10 @@
 "=============================================================================
 " LOAD GUARD {{{1
 
-if !l9#guardScriptLoading(expand('<sfile>:p'), 0, 0, [])
+if exists('g:loaded_autoload_acp') || v:version < 702
   finish
 endif
+let g:loaded_autoload_acp = 1
 
 " }}}1
 "=============================================================================
@@ -25,7 +26,7 @@ function acp#enable()
   if g:acp_mappingDriven
     call s:mapForMappingDriven()
   else
-    autocmd AcpGlobalAutoCommand CursorMovedI * nested call s:feedPopup()
+    autocmd AcpGlobalAutoCommand CursorMovedI * call s:feedPopup()
   endif
 
   nnoremap <silent> i i<C-r>=<SID>feedPopup()<CR>
@@ -63,7 +64,7 @@ function acp#meetsForSnipmate(context)
   if g:acp_behaviorSnipmateLength < 0
     return 0
   endif
-  let matches = matchlist(a:context, '\(^\|\s\|[\"'']\@<!\<\)\(\u\{' .
+  let matches = matchlist(a:context, '\(^\|\s\|\<\)\(\u\{' .
         \                            g:acp_behaviorSnipmateLength . ',}\)$')
   return !empty(matches) && !empty(s:getMatchingSnipItems(matches[2]))
 endfunction
@@ -132,28 +133,6 @@ function acp#meetsForPerlOmni(context)
 endfunction
 
 "
-function acp#meetsForPhpOmni(context)
-  if g:acp_behaviorPhpOmniLength < 1
-    return 0
-  endif
-  if a:context =~ '[^a-zA-Z0-9_:>\$]$'
-    return 0
-  endif
-  if a:context =~ 'new \k\{' . 
-     \            g:acp_behaviorPhpOmniLength . ',}$'
-     return 1
-  endif
-  if a:context =~ '\$\{' . 
-     \            g:acp_behaviorPhpOmniLength . ',}$'
-     return 1
-  endif
-  if a:context =~ '[^.]->\%(\h\w*\)\?\|\h\w*::\%(\h\w*\)\?'
-     return 1
-  endif
-  return 0
-endfunction
-
-"
 function acp#meetsForXmlOmni(context)
   return g:acp_behaviorXmlOmniLength >= 0 &&
         \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
@@ -162,25 +141,9 @@ endfunction
 
 "
 function acp#meetsForHtmlOmni(context)
-    if g:acp_behaviorHtmlOmniLength >= 0
-        if a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .g:acp_behaviorHtmlOmniLength . ',}$'
-            return 1
-        elseif a:context =~ '\(\<\k\{1,}\(=\"\)\{0,1}\|\" \)$'
-            let cur = line('.')-1
-            while cur > 0
-                let lstr = getline(cur)
-                if lstr =~ '>[^>]*$'
-                    return 0
-                elseif lstr =~ '<[^<]*$'
-                    return 1
-                endif
-                let cur = cur-1
-            endwhile
-            return 0
-        endif
-    else
-        return 0
-    endif
+  return g:acp_behaviorHtmlOmniLength >= 0 &&
+        \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
+        \              g:acp_behaviorHtmlOmniLength . ',}$'
 endfunction
 
 "
@@ -199,33 +162,26 @@ function acp#meetsForCssOmni(context)
 endfunction
 
 "
-function acp#meetsForJavaScriptOmni(context)
-    let matches = matchlist(a:context, '\(\k\{1}\)$')
-    if empty(matches)
-        return 0
-    endif
-    return 1
-endfunction
-
-"
 function acp#completeSnipmate(findstart, base)
   if a:findstart
     let s:posSnipmateCompletion = len(matchstr(s:getCurrentText(), '.*\U'))
     return s:posSnipmateCompletion
   endif
   let lenBase = len(a:base)
-  let items = snipMate#GetSnippetsForWordBelowCursor(a:base, 0)
-  call filter(items, 'strpart(v:val[0], 0, len(a:base)) ==? a:base')
-  return map(sort(items), 's:makeSnipmateItem(v:val[0], values(v:val[1])[0])')
+  let items = filter(GetSnipsInCurrentScope(),
+        \            'strpart(v:key, 0, lenBase) ==? a:base')
+  return map(sort(items(items)), 's:makeSnipmateItem(v:val[0], v:val[1])')
 endfunction
 
 "
 function acp#onPopupCloseSnipmate()
   let word = s:getCurrentText()[s:posSnipmateCompletion :]
-  if len(snipMate#GetSnippetsForWordBelowCursor(word, 0))
-    call feedkeys("\<C-r>=snipMate#TriggerSnippet()\<CR>", "n")
-    return 0
-  endif
+  for trigger in keys(GetSnipsInCurrentScope())
+    if word ==# trigger
+      call feedkeys("\<C-r>=TriggerSnippet()\<CR>", "n")
+      return 0
+    endif
+  endfor
   return 1
 endfunction
 
@@ -233,17 +189,12 @@ endfunction
 function acp#onPopupPost()
   " to clear <C-r>= expression on command-line
   echo ''
-  if pumvisible() && exists('s:behavsCurrent[s:iBehavs]')
+  if pumvisible()
     inoremap <silent> <expr> <C-h> acp#onBs()
     inoremap <silent> <expr> <BS>  acp#onBs()
-    if exists('g:AutoComplPopDontSelectFirst') ? g:AutoComplPopDontSelectFirst : 0
-      return (s:behavsCurrent[s:iBehavs].command =~# "\<C-p>" ? "\<C-n>"
-            \                                                 : "\<C-p>")
-    else
-      " a command to restore to original text and select the first match
-      return (s:behavsCurrent[s:iBehavs].command =~# "\<C-p>" ? "\<C-n>\<Up>"
-            \                                                 : "\<C-p>\<Down>")
-    endif
+    " a command to restore to original text and select the first match
+    return (s:behavsCurrent[s:iBehavs].command =~# "\<C-p>" ? "\<C-n>\<Up>"
+          \                                                 : "\<C-p>\<Down>")
   endif
   let s:iBehavs += 1
   if len(s:behavsCurrent) > s:iBehavs 
@@ -301,6 +252,20 @@ function s:unmapForMappingDriven()
     execute 'iunmap ' . key
   endfor
   let s:keysMappingDriven = []
+endfunction
+
+"
+function s:setTempOption(group, name, value)
+  call extend(s:tempOptionSet[a:group], { a:name : eval('&' . a:name) }, 'keep')
+  execute printf('let &%s = a:value', a:name)
+endfunction
+
+"
+function s:restoreTempOptions(group)
+  for [name, value] in items(s:tempOptionSet[a:group])
+    execute printf('let &%s = value', name)
+  endfor
+  let s:tempOptionSet[a:group] = {}
 endfunction
 
 "
@@ -392,21 +357,15 @@ function s:feedPopup()
   " popup menu is visible, another popup is not available unless input <C-e>
   " or try popup once. So first completion is duplicated.
   call insert(s:behavsCurrent, s:behavsCurrent[s:iBehavs])
-  call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP0,
-        \ '&spell', 0)
-  call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP0,
-        \ '&completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
-  call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP0,
-        \ '&complete', g:acp_completeOption)
-  call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP0,
-        \ '&ignorecase', g:acp_ignorecaseOption)
+  call s:setTempOption(s:GROUP0, 'spell', 0)
+  call s:setTempOption(s:GROUP0, 'completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
+  call s:setTempOption(s:GROUP0, 'complete', g:acp_completeOption)
+  call s:setTempOption(s:GROUP0, 'ignorecase', g:acp_ignorecaseOption)
   " NOTE: With CursorMovedI driven, Set 'lazyredraw' to avoid flickering.
   "       With Mapping driven, set 'nolazyredraw' to make a popup menu visible.
-  call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP0,
-        \ '&lazyredraw', !g:acp_mappingDriven)
+  call s:setTempOption(s:GROUP0, 'lazyredraw', !g:acp_mappingDriven)
   " NOTE: 'textwidth' must be restored after <C-e>.
-  call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP1,
-        \ '&textwidth', 0)
+  call s:setTempOption(s:GROUP1, 'textwidth', 0)
   call s:setCompletefunc()
   call feedkeys(s:behavsCurrent[s:iBehavs].command . "\<C-r>=acp#onPopupPost()\<CR>", 'n')
   return '' " this function is called by <C-r>=
@@ -417,28 +376,24 @@ function s:finishPopup(fGroup1)
   inoremap <C-h> <Nop> | iunmap <C-h>
   inoremap <BS>  <Nop> | iunmap <BS>
   let s:behavsCurrent = []
-  call l9#tempvariables#end(s:TEMP_VARIABLES_GROUP0)
+  call s:restoreTempOptions(s:GROUP0)
   if a:fGroup1
-    call l9#tempvariables#end(s:TEMP_VARIABLES_GROUP1)
+    call s:restoreTempOptions(s:GROUP1)
   endif
 endfunction
 
 "
 function s:setCompletefunc()
   if exists('s:behavsCurrent[s:iBehavs].completefunc')
-    call l9#tempvariables#set(s:TEMP_VARIABLES_GROUP0,
-          \ '&completefunc', s:behavsCurrent[s:iBehavs].completefunc)
+    call s:setTempOption(0, 'completefunc', s:behavsCurrent[s:iBehavs].completefunc)
   endif
 endfunction
 
 "
 function s:makeSnipmateItem(key, snip)
   if type(a:snip) == type([])
-    let descriptions = a:snip[0]
-    let snipFormatted = descriptions
-  elseif type(a:snip) == type({})
-    let descriptions = values(a:snip)[0][0]
-    let snipFormatted = substitute(descriptions, '\(\n\|\s\)\+', ' ', 'g')
+    let descriptions = map(copy(a:snip), 'v:val[0]')
+    let snipFormatted = '[MULTI] ' . join(descriptions, ', ')
   else
     let snipFormatted = substitute(a:snip, '\(\n\|\s\)\+', ' ', 'g')
   endif
@@ -452,7 +407,7 @@ endfunction
 function s:getMatchingSnipItems(base)
   let key = a:base . "\n"
   if !exists('s:snipItems[key]')
-    let s:snipItems[key] = snipMate#GetSnippetsForWordBelowCursor(tolower(a:base), 0)
+    let s:snipItems[key] = items(GetSnipsInCurrentScope())
     call filter(s:snipItems[key], 'strpart(v:val[0], 0, len(a:base)) ==? a:base')
     call map(s:snipItems[key], 's:makeSnipmateItem(v:val[0], v:val[1])')
   endif
@@ -463,11 +418,12 @@ endfunction
 "=============================================================================
 " INITIALIZATION {{{1
 
-let s:TEMP_VARIABLES_GROUP0 = "AutoComplPop0"
-let s:TEMP_VARIABLES_GROUP1 = "AutoComplPop1"
+let s:GROUP0 = 0
+let s:GROUP1 = 1
 let s:lockCount = 0
 let s:behavsCurrent = []
 let s:iBehavs = 0
+let s:tempOptionSet = [{}, {}]
 let s:snipItems = {}
 
 " }}}1

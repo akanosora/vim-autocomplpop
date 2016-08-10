@@ -33,16 +33,12 @@ ZIPファイルをランタイムディレクトリに展開します。
         <your runtime directory>/doc/acp.txt
         ...
 <
-もしランタイムディレクトリが多数のプラグインでごちゃごちゃになるのが嫌なら、各
-プラグインを個別のディレクトリに配置し、そのディレクトリのパスを 'runtimepath'
-に追加してください。アンインストールも楽になります。
+もしランタイムディレクトリが他のプラグインとごた混ぜになるのが嫌なら、ファイル
+を新規ディレクトリに配置し、そのディレクトリのパスを 'runtimepath' に追加して
+ください。アンインストールも楽になります。
 
-その後、ヘルプを有効にするためにタグファイルを更新してください。詳しくは
-|add-local-help|を参照してください。
-
-必要なもの: ~
-
-- L9 library (vimscript #3252)
+その後 FuzzyFinder のヘルプを有効にするためにタグファイルを更新してください。
+詳しくは|add-local-help|を参照してください。
 
 
 ==============================================================================
@@ -74,11 +70,22 @@ ZIPファイルをランタイムディレクトリに展開します。
 snipMate トリガー補完 ~
 
 snipMate トリガー補完では、snipMate プラグイン
-(https://github.com/garbas/vim-snipmate) が提供するスニペットの
+(http://www.vim.org/scripts/script.php?script_id=2540) が提供するスニペットの
 トリガーを補完してそれを展開することができます。
 
-この自動ポップアップを有効にするには、|g:acp_behaviorSnipmateLength|オプション
-を 1 にしてください。
+この自動ポップアップを有効にするには、次の関数を plugin/snipMate.vim に追加す
+る必要があります:
+>
+  fun! GetSnipsInCurrentScope()
+    let snips = {}
+    for scope in [bufnr('%')] + split(&ft, '\.') + ['_']
+      call extend(snips, get(s:snippets, scope, {}), 'keep')
+      call extend(snips, get(s:multi_snips, scope, {}), 'keep')
+    endfor
+    return snips
+  endf
+<
+そして|g:acp_behaviorSnipmateLength|オプションを 1 にしてください。
 
 この自動ポップアップには制限があり、カーソル直前の単語は大文字英字だけで構成さ
 れていなければなりません。

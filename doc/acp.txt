@@ -34,16 +34,12 @@ You should place the files as follows:
         <your runtime directory>/doc/acp.txt
         ...
 <
-If you are disgusted to make your runtime directory confused with a lot of
-plugins, put each of the plugins into a directory individually and just add
-the directory path to 'runtimepath'. It's easy to uninstall plugins.
+If you disgust to jumble up this plugin and other plugins in your runtime
+directory, put the files into new directory and just add the directory path to
+'runtimepath'. It's easy to uninstall the plugin.
 
-Then update your help tags files to enable help for this plugin. See
+And then update your help tags files to enable fuzzyfinder help. See
 |add-local-help| for details.
-
-Requirements: ~
-
-- L9 library (vimscript #3252)
 
 
 ==============================================================================
@@ -61,7 +57,6 @@ default behavior is as follows:
         Omni      ruby        ".", "::" or non-word character + ":"
                               (|+ruby| required.)
         Omni      python      "." (|+python| required.)
-        Omni      php         "$", "->", "::", "new "
         Omni      xml         "<", "</" or ("<" + non-">" characters + " ")
         Omni      html/xhtml  "<", "</" or ("<" + non-">" characters + " ")
         Omni      css         (":", ";", "{", "^", "@", or "!")
@@ -77,11 +72,22 @@ snipMate's Trigger Completion ~
 
 snipMate's trigger completion enables you to complete a snippet trigger
 provided by snipMate plugin
-(https://github.com/garbas/vim-snipmate) and expand it.
+(http://www.vim.org/scripts/script.php?script_id=2540) and expand it.
 
 
-To enable auto-popup for this completion, set|g:acp_behaviorSnipmateLength| 
-option to 1.
+To enable auto-popup for this completion, add following function to
+plugin/snipMate.vim:
+>
+  fun! GetSnipsInCurrentScope()
+    let snips = {}
+    for scope in [bufnr('%')] + split(&ft, '\.') + ['_']
+      call extend(snips, get(s:snippets, scope, {}), 'keep')
+      call extend(snips, get(s:multi_snips, scope, {}), 'keep')
+    endfor
+    return snips
+  endf
+<
+And set |g:acp_behaviorSnipmateLength| option to 1.
 
 There is the restriction on this auto-popup, that the word before cursor must
 consist only of uppercase characters.
@@ -94,16 +100,6 @@ AutoComplPop supports perl-completion.vim
 
 To enable auto-popup for this completion, set |g:acp_behaviorPerlOmniLength|
 option to 0 or more.
-
-
-PHP Omni-Completion ~
-
-AutoComplPop supports phpcomplete.vim
-(https://github.com/shawncplus/phpcomplete.vim).
-
-To enable auto-popup for this completion, set|g:acp_behaviorPhpOmniLength|
-option to 1.
-
 
 
 ==============================================================================
@@ -305,10 +301,6 @@ SPECIAL THANKS                                                    *acp-thanks*
 
 ==============================================================================
 CHANGELOG                                                      *acp-changelog*
-
-3.0: [TODO]
-  - From this version, L9 library (vimscript #3252) is required.
-  - Added support for phpcomplete.vim.
 
 2.14.1
   - Changed the way of auto-popup for avoiding an issue about filename
