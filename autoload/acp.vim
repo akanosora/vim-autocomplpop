@@ -364,8 +364,8 @@ endfunction
 
 "
 function s:feedPopup()
-  " NOTE: CursorMovedI will not be triggered while the popup menu is visible.
-  "       It will be triggered when popup menu has disappeared.
+  " CursorMovedI will not be triggered while the popup menu is visible.
+  " It will be triggered when popup menu has disappeared.
   if s:lockCount > 0 || pumvisible() || &paste
     return ''
   endif
@@ -380,22 +380,24 @@ function s:feedPopup()
     call s:finishPopup(1)
     return ''
   endif
-  " In case of dividing words by symbols (e.g. "for(int", "ab==cd") while a
-  " popup menu is visible, another popup is not available unless input <C-e>
-  " or try popup once. So first completion is duplicated.
+  " In case of dividing words by symbols (e.g.: "for(int", "ab==cd") while a
+  " popup menu is visible, another popup is not possible without pressing <C-e>
+  " or try popup once. Hence first completion attempt is always repeated to 
+  " circumvent this.
   call insert(s:behavsCurrent, s:behavsCurrent[s:iBehavs])
+  " Set temporary options before attempting to popup menu
   call s:setTempOption(s:GROUP0, '&spell', 0)
   call s:setTempOption(s:GROUP0, '&completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
   call s:setTempOption(s:GROUP0, '&complete', g:acp_completeOption)
   call s:setTempOption(s:GROUP0, '&ignorecase', g:acp_ignorecaseOption)
-  " NOTE: With CursorMovedI driven, Set 'lazyredraw' to avoid flickering.
-  "       With Mapping driven, set 'nolazyredraw' to make a popup menu visible.
+  " If CursorMovedI driven, set 'lazyredraw' to avoid flickering,
+  " otherwise if mapping driven, set 'nolazyredraw' to make a popup menu visible.
   call s:setTempOption(s:GROUP0, '&lazyredraw', !g:acp_mappingDriven)
-  " NOTE: 'textwidth' must be restored after <C-e>.
+  " 'textwidth' must be restored after <C-e>.
   call s:setTempOption(s:GROUP1, '&textwidth', 0)
   call s:setCompletefunc()
   call feedkeys(s:behavsCurrent[s:iBehavs].command . "\<C-r>=acp#onPopupPost()\<CR>", 'n')
-  return '' " this function is called by <C-r>=
+  return '' " This function is called by <C-r>=
 endfunction
 
 "
