@@ -18,14 +18,14 @@ let g:loaded_acp = 1
 " FUNCTION: {{{1
 
 "
-function s:defineVariableDefault(name, default)
+function s:DefineVariableDefault(name, default)
   if !exists(a:name)
     let {a:name} = a:default
   endif
 endfunction
 
 "
-function s:makeDefaultBehavior()
+function s:MakeDefaultBehavior()
   let behavs = {
         \   '*'      : [],
         \   'ruby'   : [],
@@ -37,13 +37,13 @@ function s:makeDefaultBehavior()
         \   'css'    : [],
         \ }
   "---------------------------------------------------------------------------
-  if !empty(g:acp_behaviorUserDefinedFunction) &&
-        \ !empty(g:acp_behaviorUserDefinedMeets)
+  if !empty(g:acp_user_defined_completion_func) &&
+        \ !empty(g:acp_user_defined_meets)
     for key in keys(behavs)
       call add(behavs[key], {
             \   'command'      : "\<C-x>\<C-u>",
-            \   'completefunc' : g:acp_behaviorUserDefinedFunction,
-            \   'meets'        : g:acp_behaviorUserDefinedMeets,
+            \   'completefunc' : g:acp_user_defined_completion_func,
+            \   'meets'        : g:acp_user_defined_meets,
             \   'repeat'       : 0,
             \ })
     endfor
@@ -52,17 +52,17 @@ function s:makeDefaultBehavior()
   for key in keys(behavs)
     call add(behavs[key], {
           \   'command'      : "\<C-x>\<C-u>",
-          \   'completefunc' : 's:completeSnipmate',
-          \   'meets'        : 's:meetsForSnipmate',
-          \   'onPopupClose' : 's:onPopupCloseSnipmate',
+          \   'completefunc' : 's:CompleteForSnipmate',
+          \   'meets'        : 's:MeetsForSnipmate',
+          \   'closefunc'    : 's:OnPopupCloseForSnipmate',
           \   'repeat'       : 0,
           \ })
   endfor
   "---------------------------------------------------------------------------
   for key in keys(behavs)
     call add(behavs[key], {
-          \   'command' : g:acp_behaviorKeywordCommand,
-          \   'meets'   : 's:meetsForKeyword',
+          \   'command' : g:acp_keyword_command,
+          \   'meets'   : 's:MeetsForKeyword',
           \   'repeat'  : 0,
           \ })
   endfor
@@ -70,50 +70,50 @@ function s:makeDefaultBehavior()
   for key in keys(behavs)
     call add(behavs[key], {
           \   'command' : "\<C-x>\<C-f>",
-          \   'meets'   : 's:meetsForFile',
+          \   'meets'   : 's:MeetsForFile',
           \   'repeat'  : 1,
           \ })
   endfor
   "---------------------------------------------------------------------------
   call add(behavs.ruby, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForRubyOmni',
+        \   'meets'   : 's:MeetsForRubyOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.python, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForPythonOmni',
+        \   'meets'   : 's:MeetsForPythonOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.perl, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForPerlOmni',
+        \   'meets'   : 's:MeetsForPerlOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.xml, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForXmlOmni',
+        \   'meets'   : 's:MeetsForXmlOmni',
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.html, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForHtmlOmni',
+        \   'meets'   : 's:MeetsForHtmlOmni',
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.xhtml, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForHtmlOmni',
+        \   'meets'   : 's:MeetsForHtmlOmni',
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.css, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 's:meetsForCssOmni',
+        \   'meets'   : 's:MeetsForCssOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
@@ -125,29 +125,29 @@ endfunction
 " INITIALIZATION {{{1
 
 "-----------------------------------------------------------------------------
-call s:defineVariableDefault('g:acp_enableAtStartup', 1)
-call s:defineVariableDefault('g:acp_mappingDriven', 0)
-call s:defineVariableDefault('g:acp_ignorecaseOption', 1)
-call s:defineVariableDefault('g:acp_completeOption', '.,w,b,k')
-call s:defineVariableDefault('g:acp_completeoptPreview', 0)
-call s:defineVariableDefault('g:acp_behaviorUserDefinedFunction', '')
-call s:defineVariableDefault('g:acp_behaviorUserDefinedMeets', '')
-call s:defineVariableDefault('g:acp_behaviorSnipmateLength', -1)
-call s:defineVariableDefault('g:acp_behaviorKeywordCommand', "\<C-n>")
-call s:defineVariableDefault('g:acp_behaviorKeywordLength', 2)
-call s:defineVariableDefault('g:acp_behaviorKeywordIgnores', [])
-call s:defineVariableDefault('g:acp_behaviorFileLength', 0)
-call s:defineVariableDefault('g:acp_behaviorRubyOmniMethodLength', 0)
-call s:defineVariableDefault('g:acp_behaviorRubyOmniSymbolLength', 1)
-call s:defineVariableDefault('g:acp_behaviorPythonOmniLength', 0)
-call s:defineVariableDefault('g:acp_behaviorPerlOmniLength', -1)
-call s:defineVariableDefault('g:acp_behaviorXmlOmniLength', 0)
-call s:defineVariableDefault('g:acp_behaviorHtmlOmniLength', 0)
-call s:defineVariableDefault('g:acp_behaviorCssOmniPropertyLength', 1)
-call s:defineVariableDefault('g:acp_behaviorCssOmniValueLength', 0)
-call s:defineVariableDefault('g:acp_behavior', {})
+call s:DefineVariableDefault('g:acp_enable_at_startup', 1)
+call s:DefineVariableDefault('g:acp_mapping_driven', 0)
+call s:DefineVariableDefault('g:acp_ignorecaseOption', 1)
+call s:DefineVariableDefault('g:acp_complete_option', '.,w,b,k')
+call s:DefineVariableDefault('g:acp_completeopt_preview', 0)
+call s:DefineVariableDefault('g:acp_user_defined_completion_func', '')
+call s:DefineVariableDefault('g:acp_user_defined_meets', '')
+call s:DefineVariableDefault('g:acp_snipmate_length', -1)
+call s:DefineVariableDefault('g:acp_keyword_command', "\<C-n>")
+call s:DefineVariableDefault('g:acp_keyword_length', 2)
+call s:DefineVariableDefault('g:acp_ignore_keywords', [])
+call s:DefineVariableDefault('g:acp_file_length', 0)
+call s:DefineVariableDefault('g:acp_ruby_omni_method_length', 0)
+call s:DefineVariableDefault('g:acp_ruby_omni_symbol_length', 1)
+call s:DefineVariableDefault('g:acp_python_omni_length', 0)
+call s:DefineVariableDefault('g:acp_perl_omni_length', -1)
+call s:DefineVariableDefault('g:acp_xml_omni_length', 0)
+call s:DefineVariableDefault('g:acp_html_omni_length', 0)
+call s:DefineVariableDefault('g:acp_css_omni_property_length', 1)
+call s:DefineVariableDefault('g:acp_css_omni_value_length', 0)
+call s:DefineVariableDefault('g:acp_behavior', {})
 "-----------------------------------------------------------------------------
-call extend(g:acp_behavior, s:makeDefaultBehavior(), 'keep')
+call extend(g:acp_behavior, s:MakeDefaultBehavior(), 'keep')
 "-----------------------------------------------------------------------------
 command! -bar -narg=0 AcpEnable  call acp#enable()
 command! -bar -narg=0 AcpDisable call acp#disable()
@@ -160,7 +160,7 @@ command! -bar -narg=0 AutoComplPopDisable AcpDisable
 command! -bar -narg=0 AutoComplPopLock    AcpLock
 command! -bar -narg=0 AutoComplPopUnlock  AcpUnlock
 "-----------------------------------------------------------------------------
-if g:acp_enableAtStartup
+if g:acp_enable_at_startup
   AcpEnable
 endif
 "-----------------------------------------------------------------------------
