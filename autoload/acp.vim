@@ -202,44 +202,6 @@ function acp#onPopupCloseSnipmate()
   return 1
 endfunction
 
-"
-function acp#onPopupPost()
-  if pumvisible() && exists('s:behavsCurrent[s:iBehavs]')
-    " When a popup menu appears
-    inoremap <silent> <expr> <C-h> acp#onBs()
-    inoremap <silent> <expr> <BS>  acp#onBs()
-    " To restore the original text and select the first match
-    return (s:behavsCurrent[s:iBehavs].command =~# "\<C-p>" ? "\<C-n>\<Up>"
-          \                                                 : "\<C-p>\<Down>")
-  endif
-  if s:iBehavs < len(s:behavsCurrent) - 1
-    " When no popup menu appears for the current completion method
-    " Attempt the next completion behavior if available
-    let s:iBehavs += 1
-    call s:setCompletefunc()
-    return printf("\<C-e>%s\<C-r>=acp#onPopupPost()\<CR>",
-          \       s:behavsCurrent[s:iBehavs].command)
-  else
-    " After all attempts have failed
-    let s:lastUncompletable = {
-          \   'word': s:getCurrentWord(),
-          \   'commands': map(copy(s:behavsCurrent), 'v:val.command')[1:],
-          \ }
-    call s:finishPopup(0)
-    return "\<C-e>"
-  endif
-endfunction
-
-"
-function acp#onBs()
-  " Use "matchstr" instead of "strpart" to handle multi-byte characters
-  if call(s:behavsCurrent[s:iBehavs].meets,
-        \ [matchstr(s:getCurrentText(), '.*\ze.')])
-    return "\<BS>"
-  endif
-  return "\<C-e>\<BS>"
-endfunction
-
 " }}}1
 "=============================================================================
 " LOCAL FUNCTIONS: {{{1
@@ -385,19 +347,53 @@ function s:feedPopup()
   " or try popup once. Hence first completion attempt is always repeated to 
   " circumvent this.
   call insert(s:behavsCurrent, s:behavsCurrent[s:iBehavs])
-  " Set temporary options before attempting to popup menu
-  call s:setTempOption(s:GROUP0, '&spell', 0)
-  call s:setTempOption(s:GROUP0, '&completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
-  call s:setTempOption(s:GROUP0, '&complete', g:acp_completeOption)
-  call s:setTempOption(s:GROUP0, '&ignorecase', g:acp_ignorecaseOption)
-  " If CursorMovedI driven, set 'lazyredraw' to avoid flickering,
-  " otherwise if mapping driven, set 'nolazyredraw' to make a popup menu visible.
-  call s:setTempOption(s:GROUP0, '&lazyredraw', !g:acp_mappingDriven)
-  " 'textwidth' must be restored after <C-e>.
-  call s:setTempOption(s:GROUP1, '&textwidth', 0)
-  call s:setCompletefunc()
-  call feedkeys(s:behavsCurrent[s:iBehavs].command . "\<C-r>=acp#onPopupPost()\<CR>", 'n')
+  call feedkeys(s:onPopup(0), 'n')
   return '' " This function is called by <C-r>=
+endfunction
+
+" Function to generate contents for s:feedPopup()
+" Keep it as a local function to avoid users accidentally calling it directly
+function s:onPopup(post)
+  if a:post ==# 0
+    " Set temporary options before first attempt to popup menu
+    call s:setTempOption(s:GROUP0, '&spell', 0)
+    call s:setTempOption(s:GROUP0, '&completeopt', 'menuone' . (g:acp_completeoptPreview ? ',preview' : ''))
+    call s:setTempOption(s:GROUP0, '&complete', g:acp_completeOption)
+    call s:setTempOption(s:GROUP0, '&ignorecase', g:acp_ignorecaseOption)
+    " If CursorMovedI driven, set 'lazyredraw' to avoid flickering,
+    " otherwise if mapping driven, set 'nolazyredraw' to make a popup menu visible.
+    call s:setTempOption(s:GROUP0, '&lazyredraw', !g:acp_mappingDriven)
+    " 'textwidth' must be restored after <C-e>.
+    call s:setTempOption(s:GROUP1, '&textwidth', 0)
+    call s:setCompletefunc()
+    return printf("%s\<C-r>=%sonPopup(1)\<CR>",
+          \       s:behavsCurrent[s:iBehavs].command, s:PREFIX_SID)
+  elseif a:post ==# 1
+    if pumvisible() && exists('s:behavsCurrent[s:iBehavs]')
+      " When a popup menu appears
+      inoremap <silent> <expr> <C-h> <SID>onBs()
+      inoremap <silent> <expr> <BS>  <SID>onBs()
+      " To restore the original text and select the first match
+      return (s:behavsCurrent[s:iBehavs].command =~# "\<C-p>" ? "\<C-n>\<Up>"
+            \                                                 : "\<C-p>\<Down>")
+    endif
+    if s:iBehavs < len(s:behavsCurrent) - 1
+      " When no popup menu appears for the current completion method
+      " Attempt the next completion behavior if available
+      let s:iBehavs += 1
+      call s:setCompletefunc()
+      return printf("\<C-e>%s\<C-r>=%sonPopup(1)\<CR>",
+            \       s:behavsCurrent[s:iBehavs].command, s:PREFIX_SID)
+    else
+      " After all attempts have failed
+      let s:lastUncompletable = {
+            \   'word': s:getCurrentWord(),
+            \   'commands': map(copy(s:behavsCurrent), 'v:val.command')[1:],
+            \ }
+      call s:finishPopup(0)
+      return "\<C-e>"
+    endif
+  endif
 endfunction
 
 "
@@ -416,6 +412,16 @@ function s:setCompletefunc()
   if exists('s:behavsCurrent[s:iBehavs].completefunc')
     call s:setTempOption(s:GROUP0, '&completefunc', s:behavsCurrent[s:iBehavs].completefunc)
   endif
+endfunction
+
+"
+function s:onBs()
+  " Use "matchstr" instead of "strpart" to handle multi-byte characters
+  if call(s:behavsCurrent[s:iBehavs].meets,
+        \ [matchstr(s:getCurrentText(), '.*\ze.')])
+    return "\<BS>"
+  endif
+  return "\<C-e>\<BS>"
 endfunction
 
 "
@@ -447,6 +453,13 @@ endfunction
 "=============================================================================
 " INITIALIZATION {{{1
 
+"-----------------------------------------------------------------------------
+function s:getSidPrefix()
+  return matchstr(expand('<sfile>'), '<SNR>\d\+_')
+endfunction
+let s:PREFIX_SID = s:getSidPrefix()
+delfunction s:getSidPrefix
+"-----------------------------------------------------------------------------
 let s:GROUP0 = "AutoComplPop0"
 let s:GROUP1 = "AutoComplPop1"
 let s:lockCount = 0
