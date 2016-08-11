@@ -274,16 +274,16 @@ function s:GetCurrentWord()
   return matchstr(s:GetCurrentText(), '\k*$')
 endfunction
 
-" 
+" Check if buffer is modified
 function s:IsModifiedSinceLastCall()
   if exists('s:pos_last')
-    let pos_prev = s:pos_last
+    let pos_prev     = s:pos_last
     let n_lines_prev = s:n_lines_last
-    let text_prev = s:text_last
+    let text_prev    = s:text_last
   endif
-  let s:pos_last = getpos('.')
+  let s:pos_last     = getpos('.')
   let s:n_lines_last = line('$')
-  let s:text_last = getline('.')
+  let s:text_last    = getline('.')
   if !exists('pos_prev')
     return 1
   elseif pos_prev[1] != s:pos_last[1] || n_lines_prev != s:n_lines_last
@@ -425,7 +425,7 @@ endfunction
 function s:OnBS()
   " Use "matchstr" instead of "strpart" to handle multi-byte characters
   if call(s:current_behavs[s:behav_idx].meets,
-        \ [matchstr(s:GetCurrentText(), '.*\ze.')])
+        \ [matchstr(s:GetCurrentText(), '.*.\@=')])
     return "\<BS>"
   endif
   return "\<C-e>\<BS>"
