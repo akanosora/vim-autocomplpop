@@ -68,9 +68,25 @@ function acp#unlock()
   endif
 endfunction
 
+" }}}1
+"=============================================================================
+" LOCAL FUNCTIONS: {{{1
+
+" Default completion funciton for snipMate
+function s:completeSnipmate(findstart, base)
+  if a:findstart
+    let s:posSnipmateCompletion = len(matchstr(s:getCurrentText(), '.*\U'))
+    return s:posSnipmateCompletion
+  endif
+  let lenBase = len(a:base)
+  let items = filter(GetSnipsInCurrentScope(),
+        \            'strpart(v:key, 0, lenBase) ==? a:base')
+  return map(sort(items(items)), 's:makeSnipmateItem(v:val[0], v:val[1])')
+endfunction
+
 " Default 'meets' function for snipMate
 " to decide whether to attempt completion
-function acp#meetsForSnipmate(context)
+function s:meetsForSnipmate(context)
   if g:acp_behaviorSnipmateLength < 0
     return 0
   endif
@@ -79,9 +95,21 @@ function acp#meetsForSnipmate(context)
   return !empty(matches) && !empty(s:getMatchingSnipItems(matches[2]))
 endfunction
 
+" Default 'onPopupClose' function for snipMate
+function s:onPopupCloseSnipmate()
+  let word = s:getCurrentText()[s:posSnipmateCompletion :]
+  for trigger in keys(GetSnipsInCurrentScope())
+    if word ==# trigger
+      call feedkeys("\<C-r>=TriggerSnippet()\<CR>", "n")
+      return 0
+    endif
+  endfor
+  return 1
+endfunction
+
 " Default 'meets' function for anything that is a keyword
 " to decide whether to attempt completion
-function acp#meetsForKeyword(context)
+function s:meetsForKeyword(context)
   if g:acp_behaviorKeywordLength < 0
     return 0
   endif
@@ -101,7 +129,7 @@ endfunction
 
 " Default 'meets' function for file names
 " to decide whether to attempt completion
-function acp#meetsForFile(context)
+function s:meetsForFile(context)
   if g:acp_behaviorFileLength < 0
     return 0
   endif
@@ -118,7 +146,7 @@ endfunction
 
 " Default 'meets' function for Ruby
 " to decide whether to attempt completion
-function acp#meetsForRubyOmni(context)
+function s:meetsForRubyOmni(context)
   if has('ruby') && g:acp_behaviorRubyOmniMethodLength >= 0 &&
         \ a:context =~ '[^. \t]\(\.\|::\)\k\{' .
         \              g:acp_behaviorRubyOmniMethodLength . ',}$'
@@ -134,21 +162,21 @@ endfunction
 
 " Default 'meets' function for Python
 " to decide whether to attempt completion
-function acp#meetsForPythonOmni(context)
+function s:meetsForPythonOmni(context)
   return has('python') && g:acp_behaviorPythonOmniLength >= 0 &&
         \ a:context =~ '\k\.\k\{' . g:acp_behaviorPythonOmniLength . ',}$'
 endfunction
 
 " Default 'meets' function for Perl
 " to decide whether to attempt completion
-function acp#meetsForPerlOmni(context)
+function s:meetsForPerlOmni(context)
   return has('perl') && g:acp_behaviorPerlOmniLength >= 0 &&
         \ a:context =~ '\w->\k\{' . g:acp_behaviorPerlOmniLength . ',}$'
 endfunction
 
 " Default 'meets' function for Xml
 " to decide whether to attempt completion
-function acp#meetsForXmlOmni(context)
+function s:meetsForXmlOmni(context)
   return g:acp_behaviorXmlOmniLength >= 0 &&
         \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
         \              g:acp_behaviorXmlOmniLength . ',}$'
@@ -156,7 +184,7 @@ endfunction
 
 " Default 'meets' function for Html
 " to decide whether to attempt completion
-function acp#meetsForHtmlOmni(context)
+function s:meetsForHtmlOmni(context)
   return g:acp_behaviorHtmlOmniLength >= 0 &&
         \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
         \              g:acp_behaviorHtmlOmniLength . ',}$'
@@ -164,7 +192,7 @@ endfunction
 
 " Default 'meets' function for Css
 " to decide whether to attempt completion
-function acp#meetsForCssOmni(context)
+function s:meetsForCssOmni(context)
   if g:acp_behaviorCssOmniPropertyLength >= 0 &&
         \ a:context =~ '\(^\s\|[;{]\)\s*\k\{' .
         \              g:acp_behaviorCssOmniPropertyLength . ',}$'
@@ -177,34 +205,6 @@ function acp#meetsForCssOmni(context)
   endif
   return 0
 endfunction
-
-"
-function acp#completeSnipmate(findstart, base)
-  if a:findstart
-    let s:posSnipmateCompletion = len(matchstr(s:getCurrentText(), '.*\U'))
-    return s:posSnipmateCompletion
-  endif
-  let lenBase = len(a:base)
-  let items = filter(GetSnipsInCurrentScope(),
-        \            'strpart(v:key, 0, lenBase) ==? a:base')
-  return map(sort(items(items)), 's:makeSnipmateItem(v:val[0], v:val[1])')
-endfunction
-
-"
-function acp#onPopupCloseSnipmate()
-  let word = s:getCurrentText()[s:posSnipmateCompletion :]
-  for trigger in keys(GetSnipsInCurrentScope())
-    if word ==# trigger
-      call feedkeys("\<C-r>=TriggerSnippet()\<CR>", "n")
-      return 0
-    endif
-  endfor
-  return 1
-endfunction
-
-" }}}1
-"=============================================================================
-" LOCAL FUNCTIONS: {{{1
 
 "
 function s:mapForMappingDriven()

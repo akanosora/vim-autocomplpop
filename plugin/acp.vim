@@ -52,9 +52,9 @@ function s:makeDefaultBehavior()
   for key in keys(behavs)
     call add(behavs[key], {
           \   'command'      : "\<C-x>\<C-u>",
-          \   'completefunc' : 'acp#completeSnipmate',
-          \   'meets'        : 'acp#meetsForSnipmate',
-          \   'onPopupClose' : 'acp#onPopupCloseSnipmate',
+          \   'completefunc' : 's:completeSnipmate',
+          \   'meets'        : 's:meetsForSnipmate',
+          \   'onPopupClose' : 's:onPopupCloseSnipmate',
           \   'repeat'       : 0,
           \ })
   endfor
@@ -62,7 +62,7 @@ function s:makeDefaultBehavior()
   for key in keys(behavs)
     call add(behavs[key], {
           \   'command' : g:acp_behaviorKeywordCommand,
-          \   'meets'   : 'acp#meetsForKeyword',
+          \   'meets'   : 's:meetsForKeyword',
           \   'repeat'  : 0,
           \ })
   endfor
@@ -70,50 +70,50 @@ function s:makeDefaultBehavior()
   for key in keys(behavs)
     call add(behavs[key], {
           \   'command' : "\<C-x>\<C-f>",
-          \   'meets'   : 'acp#meetsForFile',
+          \   'meets'   : 's:meetsForFile',
           \   'repeat'  : 1,
           \ })
   endfor
   "---------------------------------------------------------------------------
   call add(behavs.ruby, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForRubyOmni',
+        \   'meets'   : 's:meetsForRubyOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.python, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForPythonOmni',
+        \   'meets'   : 's:meetsForPythonOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.perl, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForPerlOmni',
+        \   'meets'   : 's:meetsForPerlOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.xml, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForXmlOmni',
+        \   'meets'   : 's:meetsForXmlOmni',
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.html, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForHtmlOmni',
+        \   'meets'   : 's:meetsForHtmlOmni',
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.xhtml, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForHtmlOmni',
+        \   'meets'   : 's:meetsForHtmlOmni',
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
   call add(behavs.css, {
         \   'command' : "\<C-x>\<C-o>",
-        \   'meets'   : 'acp#meetsForCssOmni',
+        \   'meets'   : 's:meetsForCssOmni',
         \   'repeat'  : 0,
         \ })
   "---------------------------------------------------------------------------
