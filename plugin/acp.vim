@@ -1,5 +1,6 @@
 "=============================================================================
 " Copyright (c) 2007-2009 Takeshi NISHIDA
+" Copyright (c) 2016      Zhen-Huan Hu
 "
 " GetLatestVimScripts: 1879 1 :AutoInstall: AutoComplPop
 "=============================================================================

@@ -1,5 +1,6 @@
 "=============================================================================
 " Copyright (c) 2007-2009 Takeshi NISHIDA
+" Copyright (c) 2016      Zhen-Huan Hu
 "
 "=============================================================================
 " LOAD GUARD {{{1
@@ -13,8 +14,7 @@ let g:loaded_autoload_acp = 1
 "=============================================================================
 " GLOBAL FUNCTIONS: {{{1
 
-" For AcpEnable option
-" to enable auto-popup
+" To enable auto-popup
 function acp#enable()
   call acp#disable()
 
@@ -40,8 +40,7 @@ function acp#enable()
   nnoremap <silent> R R<C-r>=<SID>FeedPopup()<CR>
 endfunction
 
-" For AcpDisable option
-" to disable auto-popup
+" To disable auto-popup
 function acp#disable()
   call s:UnMapForMappingDriven()
   augroup AcpGlobalAutoCommand
@@ -52,14 +51,12 @@ function acp#disable()
   nnoremap R <Nop> | nunmap R
 endfunction
 
-" For AcpLock option
-" to suspend auto-popup temporarily
+" To suspend auto-popup temporarily
 function acp#lock()
   let s:lock_count += 1
 endfunction
 
-" For AcpUnlock option
-" to resume auto-popup from suspension
+" To resume auto-popup from suspension
 function acp#unlock()
   let s:lock_count -= 1
   if s:lock_count < 0
@@ -302,7 +299,10 @@ endfunction
 "
 function s:MakeCurrentBehaviorSet()
   let modified = s:IsModifiedSinceLastCall()
-  if exists('s:current_behavs[s:behav_idx].repeat') && s:current_behavs[s:behav_idx].repeat
+  " s:current_behavs is a list with several completion
+  " behaviors for current file type
+  if exists('s:current_behavs[s:behav_idx].repeat')
+        \ && s:current_behavs[s:behav_idx].repeat
     let behavs = [ s:current_behavs[s:behav_idx] ]
   elseif exists('s:current_behavs[s:behav_idx]')
     return []
