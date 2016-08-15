@@ -296,37 +296,65 @@ function s:IsModifiedSinceLastCall()
   return pos_prev[2] != s:pos_last[2]
 endfunction
 
-"
+" Make current behavior set s:current_behavs
+" The function returns 1 if succeeds
+" 0 if no new behavior set is created
 function s:MakeCurrentBehaviorSet()
-  let modified = s:IsModifiedSinceLastCall()
   " s:current_behavs is a list with several completion
-  " behaviors for current file type
-  if exists('s:current_behavs[s:behav_idx].repeat')
-        \ && s:current_behavs[s:behav_idx].repeat
-    let behavs = [ s:current_behavs[s:behav_idx] ]
-  elseif exists('s:current_behavs[s:behav_idx]')
-    return []
-  elseif modified
-    let behavs = copy(exists('g:acp_behavior[&filetype]')
-          \           ? g:acp_behavior[&filetype]
-          \           : g:acp_behavior['*'])
+  " behaviors for the current file type
+  " It will be cleared by s:ClearCurrentBehaviorSet()
+  if exists('s:current_behavs[s:behav_idx]')
+    if exists('s:current_behavs[s:behav_idx].repeat')
+          \ && s:current_behavs[s:behav_idx].repeat
+      let s:current_behavs = [ s:current_behavs[s:behav_idx] ]
+    else
+      " No need to create new behavior set
+      " if one already exists
+      call s:ClearCurrentBehaviorSet()
+      return 0
+    endif
+  elseif s:IsModifiedSinceLastCall()
+    " Make the behavior set only if
+    " the buffer has been modified since last call
+    let s:current_behavs = copy(exists('g:acp_behavior[&filetype]')
+          \ ? g:acp_behavior[&filetype]
+          \ : g:acp_behavior['*'])
   else
-    return []
+    " No need to create new behavior set
+    " if the buffer is not changed
+    call s:ClearCurrentBehaviorSet()
+    return 0
   endif
-  let text = s:GetCurrentText()
-  call filter(behavs, 'call(v:val.meets, [text])')
   let s:behav_idx = 0
+  let text = s:GetCurrentText()
+  call filter(s:current_behavs, 'call(v:val.meets, [text])')
   " Improve the response by not to attempt any completion when 
   " keyword characters are entered after a word which has been found with
   " no completion candidate at the last attempt for completion
   if exists('s:last_uncompletable') &&
         \ stridx(s:GetCurrentWord(), s:last_uncompletable.word) == 0 &&
-        \ map(copy(behavs), 'v:val.command') ==# s:last_uncompletable.commands
-    let behavs = []
-  else
-    unlet! s:last_uncompletable
+        \ map(copy(s:current_behavs), 'v:val.command') ==# s:last_uncompletable.commands
+    call s:ClearCurrentBehaviorSet()
+    return 0
+  else 
+    if empty(s:current_behavs)
+      " Clear s:last_uncompletable if current word
+      " length does not meet the requirement
+      unlet! s:last_uncompletable
+      " This is actually redundant since s:current_behavs is empty already
+      " but kept here to help the logic easier to understand
+      call s:ClearCurrentBehaviorSet()
+      return 0
+    else
+      return 1
+    endif
   endif
-  return behavs
+endfunction
+
+" Clear current behavior set
+" created by s:MakeCurrentBehaviorSet
+function s:ClearCurrentBehaviorSet()
+  let s:current_behavs = []
 endfunction
 
 "
@@ -335,89 +363,78 @@ function s:FeedPopup()
   " It will be triggered when popup menu has disappeared.
   if s:lock_count > 0 || pumvisible() || &paste
     return ''
-  endif
-  if exists('s:current_behavs[s:behav_idx].closef')
+  elseif exists('s:current_behavs[s:behav_idx].closef')
     if !call(s:current_behavs[s:behav_idx].closef, [])
+      " Fallback to s:FinishPopup if not successful
       call s:FinishPopup(1)
-      return ''
     endif
-  endif
-  let s:current_behavs = s:MakeCurrentBehaviorSet()
-  if empty(s:current_behavs)
-    call s:FinishPopup(1)
     return ''
-  endif
-  " In case of dividing words by symbols (e.g.: "for(int", "ab==cd") while a
-  " popup menu is visible, another popup is not possible without pressing <C-e>
-  " or try popup once. Hence first completion attempt is always repeated to 
-  " circumvent this.
-  call insert(s:current_behavs, s:current_behavs[s:behav_idx])
-  call feedkeys(s:OnPopup(0), 'n')
-  return '' " This function is called by <C-r>=
-endfunction
-
-" Function to generate contents for s:FeedPopup()
-" Keep it as a local function to avoid users accidentally calling it directly
-function s:OnPopup(post)
-  if a:post ==# 0
-    " Set temporary options before first attempt to popup menu
+  elseif s:MakeCurrentBehaviorSet()
+    " In case of dividing words by symbols (e.g.: "for(int", "ab==cd") while a
+    " popup menu is visible, another popup is not possible without pressing <C-e>
+    " or try popup once. Hence first completion attempt is always repeated to 
+    " circumvent this.
+    call insert(s:current_behavs, s:current_behavs[0])
+    " Set temporary options before attempting to popup menu
     call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&spell', 0)
     call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completeopt', 'menuone' . (g:acp_completeopt_preview ? ',preview' : ''))
     call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&complete', g:acp_complete_option)
     call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&ignorecase', g:acp_ignorecaseOption)
+    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completefunc', (exists('s:current_behavs[0].completefunc') ? s:current_behavs[0].completefunc : eval('&completefunc')))
     " If CursorMovedI driven, set 'lazyredraw' to avoid flickering,
     " otherwise if mapping driven, set 'nolazyredraw' to make a popup menu visible.
     call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&lazyredraw', !g:acp_mapping_driven)
     " 'textwidth' must be restored after <C-e>.
     call s:SetTempOption(s:TEMP_VARS_GROUP_1, '&textwidth', 0)
-    call s:SetCompleteFunc()
-    return printf("%s\<C-r>=%sOnPopup(1)\<CR>",
+    call feedkeys(printf("%s\<C-r>=%sOnPopup()\<CR>",
+          \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID), 'n')
+    return '' " This function is called by <C-r>=
+  else
+    call s:FinishPopup(1)
+    return '' " This function is called by <C-r>=
+  endif
+endfunction
+
+" Function to generate contents for s:FeedPopup()
+" Keep it as a local function to avoid users accidentally calling it directly
+function s:OnPopup()
+  if pumvisible()
+    " When a popup menu appears
+    inoremap <silent> <expr> <C-h> <SID>OnBS()
+    inoremap <silent> <expr> <BS>  <SID>OnBS()
+    " To restore the original text and select the first match
+    return (s:current_behavs[s:behav_idx].command =~# "\<C-p>" ? "\<C-n>\<Up>"
+          \                                                 : "\<C-p>\<Down>")
+  elseif s:behav_idx < len(s:current_behavs) - 1
+    " When popup menu impossible for the current completion behavior,
+    " attempt the next behavior if available
+    let s:behav_idx += 1
+    " Need to update &completefunc each time before a new behavior is tried
+    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completefunc',
+          \ (exists('s:current_behavs[s:behav_idx].completefunc') ? s:current_behavs[s:behav_idx].completefunc : eval('&completefunc')))
+    return printf("\<C-e>%s\<C-r>=%sOnPopup()\<CR>",
           \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID)
-  elseif a:post ==# 1
-    if pumvisible() && exists('s:current_behavs[s:behav_idx]')
-      " When a popup menu appears
-      inoremap <silent> <expr> <C-h> <SID>OnBS()
-      inoremap <silent> <expr> <BS>  <SID>OnBS()
-      " To restore the original text and select the first match
-      return (s:current_behavs[s:behav_idx].command =~# "\<C-p>" ? "\<C-n>\<Up>"
-            \                                                 : "\<C-p>\<Down>")
-    endif
-    if s:behav_idx < len(s:current_behavs) - 1
-      " When no popup menu appears for the current completion method
-      " Attempt the next completion behavior if available
-      let s:behav_idx += 1
-      call s:SetCompleteFunc()
-      return printf("\<C-e>%s\<C-r>=%sOnPopup(1)\<CR>",
-            \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID)
-    else
-      " After all attempts have failed
-      let s:last_uncompletable = {
-            \   'word': s:GetCurrentWord(),
-            \   'commands': map(copy(s:current_behavs), 'v:val.command')[1:],
-            \ }
-      call s:FinishPopup(0)
-      return "\<C-e>"
-    endif
+  else
+    " After all attempts have failed
+    let s:last_uncompletable = {
+          \   'word': s:GetCurrentWord(),
+          \   'commands': map(copy(s:current_behavs), 'v:val.command')[1:],
+          \ }
+    call s:FinishPopup(0)
+    return "\<C-e>"
   endif
 endfunction
 
 "
 function s:FinishPopup(mode)
+  call s:ClearCurrentBehaviorSet()
   inoremap <C-h> <Nop> | iunmap <C-h>
   inoremap <BS>  <Nop> | iunmap <BS>
-  let s:current_behavs = []
   if a:mode ==# 0
     call s:RestoreTempOptions(s:TEMP_VARS_GROUP_0)
   elseif a:mode ==# 1
     call s:RestoreTempOptions(s:TEMP_VARS_GROUP_0)
     call s:RestoreTempOptions(s:TEMP_VARS_GROUP_1)
-  endif
-endfunction
-
-"
-function s:SetCompleteFunc()
-  if exists('s:current_behavs[s:behav_idx].completefunc')
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completefunc', s:current_behavs[s:behav_idx].completefunc)
   endif
 endfunction
 
