@@ -5,7 +5,7 @@ Auto trigger complete popup menu.
 ## Changes
 
 * Revert the reliability to L9 library
-* Add default behavior for javascript, coffee, ls, css
+* Add default behavior for JavaScript, Coffee, LiveScript
 * Supports [garbas/vim-snipmate][] - TODO
 
 [garbas/vim-snipmate]:https://github.com/garbas/vim-snipmate
