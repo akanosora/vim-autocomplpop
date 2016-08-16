@@ -376,16 +376,16 @@ function s:FeedPopup()
     " circumvent this.
     call insert(s:current_behavs, s:current_behavs[0])
     " Set temporary options before attempting to popup menu
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&spell', 0)
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completeopt', 'menuone' . (g:acp_completeopt_preview ? ',preview' : ''))
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&complete', g:acp_complete_option)
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&ignorecase', g:acp_ignorecaseOption)
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completefunc', (exists('s:current_behavs[0].completefunc') ? s:current_behavs[0].completefunc : eval('&completefunc')))
+    call s:SetTempOption(s:L_0, '&spell', 0)
+    call s:SetTempOption(s:L_0, '&completeopt', 'menuone' . (g:acp_completeopt_preview ? ',preview' : ''))
+    call s:SetTempOption(s:L_0, '&complete', g:acp_complete_option)
+    call s:SetTempOption(s:L_0, '&ignorecase', g:acp_ignorecaseOption)
+    call s:SetTempOption(s:L_0, '&completefunc', (exists('s:current_behavs[0].completefunc') ? s:current_behavs[0].completefunc : eval('&completefunc')))
     " If CursorMovedI driven, set 'lazyredraw' to avoid flickering,
     " otherwise if mapping driven, set 'nolazyredraw' to make a popup menu visible.
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&lazyredraw', !g:acp_mapping_driven)
+    call s:SetTempOption(s:L_0, '&lazyredraw', !g:acp_mapping_driven)
     " 'textwidth' must be restored after <C-e>.
-    call s:SetTempOption(s:TEMP_VARS_GROUP_1, '&textwidth', 0)
+    call s:SetTempOption(s:L_1, '&textwidth', 0)
     call feedkeys(printf("%s\<C-r>=%sOnPopup()\<CR>",
           \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID), 'n')
     return '' " This function is called by <C-r>=
@@ -410,7 +410,7 @@ function s:OnPopup()
     " attempt the next behavior if available
     let s:behav_idx += 1
     " Need to update &completefunc each time before a new behavior is tried
-    call s:SetTempOption(s:TEMP_VARS_GROUP_0, '&completefunc',
+    call s:SetTempOption(s:L_0, '&completefunc',
           \ (exists('s:current_behavs[s:behav_idx].completefunc') ? s:current_behavs[s:behav_idx].completefunc : eval('&completefunc')))
     return printf("\<C-e>%s\<C-r>=%sOnPopup()\<CR>",
           \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID)
@@ -431,10 +431,10 @@ function s:FinishPopup(mode)
   inoremap <C-h> <Nop> | iunmap <C-h>
   inoremap <BS>  <Nop> | iunmap <BS>
   if a:mode ==# 0
-    call s:RestoreTempOptions(s:TEMP_VARS_GROUP_0)
+    call s:RestoreTempOptions(s:L_0)
   elseif a:mode ==# 1
-    call s:RestoreTempOptions(s:TEMP_VARS_GROUP_0)
-    call s:RestoreTempOptions(s:TEMP_VARS_GROUP_1)
+    call s:RestoreTempOptions(s:L_0)
+    call s:RestoreTempOptions(s:L_1)
   endif
 endfunction
 
@@ -484,8 +484,8 @@ endfunction
 "-----------------------------------------------------------------------------
 let s:PREFIX_SID = s:GetSidPrefix()
 delfunction s:GetSidPrefix
-let s:TEMP_VARS_GROUP_0 = "AutoComplPop0"
-let s:TEMP_VARS_GROUP_1 = "AutoComplPop1"
+let s:L_0 = 0
+let s:L_1 = 1
 "-----------------------------------------------------------------------------
 let s:lock_count = 0
 let s:current_behavs = []
