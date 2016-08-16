@@ -28,22 +28,25 @@ endfunction
 "
 function s:MakeDefaultBehavior()
   let behavs = {
-        \   '*'      : [],
-        \   'ruby'   : [],
-        \   'python' : [],
-        \   'perl'   : [],
-        \   'xml'    : [],
-        \   'html'   : [],
-        \   'xhtml'  : [],
-        \   'css'    : [],
+        \   '*'           : [],
+        \   'ruby'        : [],
+        \   'python'      : [],
+        \   'perl'        : [],
+        \   'xml'         : [],
+        \   'html'        : [],
+        \   'xhtml'       : [],
+        \   'javascript'  : [],
+        \   'coffee'      : [],
+        \   'ls'          : [],
+        \   'css'         : [],
         \ }
   "---------------------------------------------------------------------------
-  if !empty(g:acp_user_defined_completion_func) &&
+  if !empty(g:acp_user_defined_completefunc) &&
         \ !empty(g:acp_user_defined_meets)
     for key in keys(behavs)
       call add(behavs[key], {
             \   'command'      : "\<C-x>\<C-u>",
-            \   'completefunc' : g:acp_user_defined_completion_func,
+            \   'completefunc' : g:acp_user_defined_completefunc,
             \   'meets'        : g:acp_user_defined_meets,
             \   'repeat'       : 0,
             \ })
@@ -53,7 +56,7 @@ function s:MakeDefaultBehavior()
   for key in keys(behavs)
     call add(behavs[key], {
           \   'command'      : "\<C-x>\<C-u>",
-          \   'completefunc' : 's:CompleteForSnipmate',
+          \   'completefunc' : 's:CompleteFuncForSnipmate',
           \   'meets'        : 's:MeetsForSnipmate',
           \   'closefunc'    : 's:OnPopupCloseForSnipmate',
           \   'repeat'       : 0,
@@ -112,6 +115,24 @@ function s:MakeDefaultBehavior()
         \   'repeat'  : 1,
         \ })
   "---------------------------------------------------------------------------
+  call add(behavs.javascript, {
+        \   'command' : "\<C-x>\<C-o>",
+        \   'meets'   : 's:MeetsForJavaScriptOmni',
+        \   'repeat'  : 0,
+        \ })
+  "---------------------------------------------------------------------------
+  call add(behavs.coffee, {
+        \   'command' : "\<C-x>\<C-o>",
+        \   'meets'   : 's:MeetsForJavaScriptOmni',
+        \   'repeat'  : 0,
+        \ })
+  "---------------------------------------------------------------------------
+  call add(behavs.ls, {
+        \   'command' : "\<C-x>\<C-o>",
+        \   'meets'   : 's:MeetsForJavaScriptOmni',
+        \   'repeat'  : 0,
+        \ })
+  "---------------------------------------------------------------------------
   call add(behavs.css, {
         \   'command' : "\<C-x>\<C-o>",
         \   'meets'   : 's:MeetsForCssOmni',
@@ -128,10 +149,11 @@ endfunction
 "-----------------------------------------------------------------------------
 call s:DefineVariableDefault('g:acp_enable_at_startup', 1)
 call s:DefineVariableDefault('g:acp_mapping_driven', 0)
+call s:DefineVariableDefault('g:acp_select_first_item', 1)
 call s:DefineVariableDefault('g:acp_ignorecase_option', 1)
 call s:DefineVariableDefault('g:acp_complete_option', '.,w,b,k')
 call s:DefineVariableDefault('g:acp_completeopt_preview', 0)
-call s:DefineVariableDefault('g:acp_user_defined_completion_func', '')
+call s:DefineVariableDefault('g:acp_user_defined_completefunc', '')
 call s:DefineVariableDefault('g:acp_user_defined_meets', '')
 call s:DefineVariableDefault('g:acp_snipmate_length', -1)
 call s:DefineVariableDefault('g:acp_keyword_command', "\<C-n>")
@@ -141,9 +163,10 @@ call s:DefineVariableDefault('g:acp_file_length', 0)
 call s:DefineVariableDefault('g:acp_ruby_omni_method_length', 0)
 call s:DefineVariableDefault('g:acp_ruby_omni_symbol_length', 1)
 call s:DefineVariableDefault('g:acp_python_omni_length', 0)
-call s:DefineVariableDefault('g:acp_perl_omni_length', -1)
+call s:DefineVariableDefault('g:acp_perl_omni_length', 0)
 call s:DefineVariableDefault('g:acp_xml_omni_length', 0)
 call s:DefineVariableDefault('g:acp_html_omni_length', 0)
+call s:DefineVariableDefault('g:acp_javascript_omni_length', 1)
 call s:DefineVariableDefault('g:acp_css_omni_property_length', 1)
 call s:DefineVariableDefault('g:acp_css_omni_value_length', 0)
 call s:DefineVariableDefault('g:acp_behavior', {})

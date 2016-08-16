@@ -70,7 +70,7 @@ endfunction
 " LOCAL FUNCTIONS: {{{1
 
 " Default completion funciton for snipMate
-function s:CompleteForSnipmate(findstart, base)
+function s:CompleteFuncForSnipmate(findstart, base)
   if a:findstart
     let s:snip_completion_pos = len(matchstr(s:GetCurrentText(), '.*\U'))
     return s:snip_completion_pos
@@ -185,6 +185,14 @@ function s:MeetsForHtmlOmni(context)
   return g:acp_html_omni_length >= 0 &&
         \ a:context =~ '\(<\|<\/\|<[^>]\+ \|<[^>]\+=\"\)\k\{' .
         \              g:acp_html_omni_length . ',}$'
+endfunction
+
+" Default 'meets' function for JavaScript
+" to decide whether to attempt completion
+function s:MeetsForJavaScriptOmni(context)
+  return g:acp_javascript_omni_length >= 0 &&
+        \ a:context =~ '\k\{' .
+        \              g:acp_javascript_omni_length . ',}$'
 endfunction
 
 " Default 'meets' function for Css
@@ -379,8 +387,7 @@ function s:FeedPopup()
       call s:SetTempOption(s:L_0, '&lazyredraw', !g:acp_mapping_driven)
       " Unlike other options, &textwidth must be restored after each final <C-e>
       call s:SetTempOption(s:L_1, '&textwidth', 0)
-      call feedkeys(printf("%s\<C-r>=%sOnPopup()\<CR>",
-            \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID), 'n')
+      call feedkeys(printf("%s\<C-r>=%sOnPopup()\<CR>", s:current_behavs[0].command, s:PREFIX_SID), 'n')
       return ''
     endif
   else
@@ -396,9 +403,15 @@ function s:OnPopup()
     " When a popup menu appears
     inoremap <silent> <expr> <C-h> <SID>OnBS()
     inoremap <silent> <expr> <BS>  <SID>OnBS()
-    " To restore the original text and select the first match
-    return (s:current_behavs[s:behav_idx].command =~# "\<C-p>" ? "\<C-n>\<Up>"
-          \                                                 : "\<C-p>\<Down>")
+    if g:acp_select_first_item
+      " To restore the original text and select the first match
+      return (s:current_behavs[s:behav_idx].command =~# "\<C-p>" ? "\<C-n>\<Up>"
+            \                                                    : "\<C-p>\<Down>")
+    else
+      " To restore the original text
+      return (s:current_behavs[s:behav_idx].command =~# "\<C-p>" ? "\<C-n>"
+            \                                                    : "\<C-p>")
+    endif
   elseif s:behav_idx < len(s:current_behavs) - 1
     " When popup menu impossible for the current completion behavior,
     " attempt the next behavior if available
@@ -406,8 +419,7 @@ function s:OnPopup()
     " Need to update &completefunc each time before a new behavior is tried
     call s:SetTempOption(s:L_0, '&completefunc',
           \ (exists('s:current_behavs[s:behav_idx].completefunc') ? s:current_behavs[s:behav_idx].completefunc : eval('&completefunc')))
-    return printf("\<C-e>%s\<C-r>=%sOnPopup()\<CR>",
-          \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID)
+    return printf("\<C-e>%s\<C-r>=%sOnPopup()\<CR>", s:current_behavs[s:behav_idx].command, s:PREFIX_SID)
   else
     " After all attempts have failed
     let s:last_uncompletable = {
