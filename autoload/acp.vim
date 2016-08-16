@@ -254,19 +254,18 @@ function s:RestoreTempOptions(group)
   unlet s:orig_map[a:group]
 endfunction
 
-" Retrieve the contents at current line
-" before the cursor
+" Retrieve contents at current line before cursor
 function s:GetCurrentText()
   return strpart(getline('.'), 0, col('.') - 1)
 endfunction
 
-" Retrieve the contents at current line
-" after the cursor
+" Retrieve contents at current line after cursor
 function s:GetPostText()
   return strpart(getline('.'), col('.') - 1)
 endfunction
 
-" Retrieve the word at cursor
+" Retrieve current word at cursor
+" At a non-keyword character, return empty string
 function s:GetCurrentWord()
   return matchstr(s:GetCurrentText(), '\k*$')
 endfunction
@@ -326,41 +325,24 @@ function s:MakeCurrentBehaviorSet()
     return 0
   endif
   let s:behav_idx = 0
-  let text = s:GetCurrentText()
-  call filter(s:current_behavs, 'call(v:val.meets, [text])')
-  " Improve the response by not to attempt any completion when 
-  " keyword characters are entered after a word which has been found with
-  " no completion candidate at the last attempt for completion
-  if exists('s:last_uncompletable') &&
-        \ stridx(s:GetCurrentWord(), s:last_uncompletable.word) == 0 &&
-        \ map(copy(s:current_behavs), 'v:val.command') ==# s:last_uncompletable.commands
-    call s:ClearCurrentBehaviorSet()
-    return 0
-  else 
-    if empty(s:current_behavs)
-      " Clear s:last_uncompletable if current word
-      " length does not meet the requirement
-      unlet! s:last_uncompletable
-      " This is actually redundant since s:current_behavs is empty already
-      " but kept here to help the logic easier to understand
-      call s:ClearCurrentBehaviorSet()
-      return 0
-    else
-      return 1
-    endif
+  let word = s:GetCurrentWord()
+  if word ==# ''
+    " Clear s:last_uncompletable at a non-keyword character
+    unlet! s:last_uncompletable
   endif
+  call filter(s:current_behavs, 'call(v:val.meets, [word])')
+  return !empty(s:current_behavs)
 endfunction
 
-" Clear current behavior set
-" created by s:MakeCurrentBehaviorSet
+" Clear current behavior set s:current_behavs
 function s:ClearCurrentBehaviorSet()
   let s:current_behavs = []
 endfunction
 
-"
+" Feed keys to popup menu
 function s:FeedPopup()
-  " CursorMovedI will not be triggered while the popup menu is visible.
-  " It will be triggered when popup menu has disappeared.
+  " CursorMovedI event will not be triggered while the popup menu is visible
+  " It will be triggered once popup menu has disappeared (aka: end of a word)
   if s:lock_count > 0 || pumvisible() || &paste
     return ''
   elseif exists('s:current_behavs[s:behav_idx].closef')
@@ -370,32 +352,44 @@ function s:FeedPopup()
     endif
     return ''
   elseif s:MakeCurrentBehaviorSet()
-    " In case of dividing words by symbols (e.g.: "for(int", "ab==cd") while a
-    " popup menu is visible, another popup is not possible without pressing <C-e>
-    " or try popup once. Hence first completion attempt is always repeated to 
-    " circumvent this.
-    call insert(s:current_behavs, s:current_behavs[0])
-    " Set temporary options before attempting to popup menu
-    call s:SetTempOption(s:L_0, '&spell', 0)
-    call s:SetTempOption(s:L_0, '&completeopt', 'menuone' . (g:acp_completeopt_preview ? ',preview' : ''))
-    call s:SetTempOption(s:L_0, '&complete', g:acp_complete_option)
-    call s:SetTempOption(s:L_0, '&ignorecase', g:acp_ignorecaseOption)
-    call s:SetTempOption(s:L_0, '&completefunc', (exists('s:current_behavs[0].completefunc') ? s:current_behavs[0].completefunc : eval('&completefunc')))
-    " If CursorMovedI driven, set 'lazyredraw' to avoid flickering,
-    " otherwise if mapping driven, set 'nolazyredraw' to make a popup menu visible.
-    call s:SetTempOption(s:L_0, '&lazyredraw', !g:acp_mapping_driven)
-    " 'textwidth' must be restored after <C-e>.
-    call s:SetTempOption(s:L_1, '&textwidth', 0)
-    call feedkeys(printf("%s\<C-r>=%sOnPopup()\<CR>",
-          \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID), 'n')
-    return '' " This function is called by <C-r>=
+    " Improve the response by not to attempt any completion when 
+    " keyword characters are entered after a word which has been found with
+    " no completion candidate at the last attempt for completion
+    if exists('s:last_uncompletable') &&
+          \ stridx(s:GetCurrentWord(), s:last_uncompletable.word) == 0 &&
+          \ map(copy(s:current_behavs), 'v:val.command') ==# s:last_uncompletable.commands
+      call s:FinishPopup(0)
+      return ''
+    else
+      " In case of words divided by symbols (e.g.: 'for(int', 'ab=cd') while a
+      " popup menu is visible, another popup is not possible without pressing <C-e>
+      " or trying to popup at least once
+      " First completion behavior is doubled to circumvent this
+      call insert(s:current_behavs, s:current_behavs[0])
+      " Set temporary options before attempting to popup menu
+      call s:SetTempOption(s:L_0, '&complete', g:acp_complete_option)
+      call s:SetTempOption(s:L_0, '&completeopt', 'menuone' . (g:acp_completeopt_preview ? ',preview' : ''))
+      call s:SetTempOption(s:L_0, '&completefunc', (exists('s:current_behavs[0].completefunc') ? s:current_behavs[0].completefunc : eval('&completefunc')))
+      " Switch on/off the &ignorecase option
+      call s:SetTempOption(s:L_0, '&ignorecase', g:acp_ignorecase_option)
+      " Switch off the &spell option
+      call s:SetTempOption(s:L_0, '&spell', 0)
+      " If autocmd driven, set 'lazyredraw' to avoid flickering,
+      " If key mapping driven, set 'nolazyredraw' to make the popup menu visible
+      call s:SetTempOption(s:L_0, '&lazyredraw', !g:acp_mapping_driven)
+      " Unlike other options, &textwidth must be restored after each final <C-e>
+      call s:SetTempOption(s:L_1, '&textwidth', 0)
+      call feedkeys(printf("%s\<C-r>=%sOnPopup()\<CR>",
+            \       s:current_behavs[s:behav_idx].command, s:PREFIX_SID), 'n')
+      return ''
+    endif
   else
     call s:FinishPopup(1)
-    return '' " This function is called by <C-r>=
+    return ''
   endif
 endfunction
 
-" Function to generate contents for s:FeedPopup()
+" Generate contents for s:FeedPopup()
 " Keep it as a local function to avoid users accidentally calling it directly
 function s:OnPopup()
   if pumvisible()
@@ -425,15 +419,15 @@ function s:OnPopup()
   endif
 endfunction
 
-"
-function s:FinishPopup(mode)
-  call s:ClearCurrentBehaviorSet()
-  inoremap <C-h> <Nop> | iunmap <C-h>
-  inoremap <BS>  <Nop> | iunmap <BS>
-  if a:mode ==# 0
+" Cleaning function after popup
+function s:FinishPopup(level)
+  if a:level <= 0
+    call s:ClearCurrentBehaviorSet()
     call s:RestoreTempOptions(s:L_0)
-  elseif a:mode ==# 1
-    call s:RestoreTempOptions(s:L_0)
+    inoremap <C-h> <Nop> | iunmap <C-h>
+    inoremap <BS>  <Nop> | iunmap <BS>
+  endif
+  if a:level <= 1
     call s:RestoreTempOptions(s:L_1)
   endif
 endfunction
