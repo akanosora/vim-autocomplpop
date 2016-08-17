@@ -310,16 +310,9 @@ function s:MakeCurrentBehaviorSet()
   " s:current_behavs is a list with several completion
   " behaviors for the current file type
   " It will be cleared by s:ClearCurrentBehaviorSet()
-  if exists('s:current_behavs[s:behav_idx]')
-    if exists('s:current_behavs[s:behav_idx].repeat')
-          \ && s:current_behavs[s:behav_idx].repeat
-      let s:current_behavs = [ s:current_behavs[s:behav_idx] ]
-    else
-      " No need to create new behavior set
-      " if one already exists
-      call s:ClearCurrentBehaviorSet()
-      return 0
-    endif
+  if exists('s:current_behavs[s:behav_idx].repeat')
+        \ && s:current_behavs[s:behav_idx].repeat
+    let s:current_behavs = [ s:current_behavs[s:behav_idx] ]
   elseif s:IsModifiedSinceLastCall()
     " Make the behavior set only if
     " the buffer has been modified since last call
