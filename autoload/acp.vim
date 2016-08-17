@@ -426,13 +426,13 @@ endfunction
 
 " Cleaning function after popup
 function s:FinishPopup(level)
-  if a:level <= 0
+  if a:level >= 0
     call s:ClearCurrentBehaviorSet()
     call s:RestoreTempOptions(s:L_0)
     inoremap <C-h> <Nop> | iunmap <C-h>
     inoremap <BS>  <Nop> | iunmap <BS>
   endif
-  if a:level <= 1
+  if a:level >= 1
     call s:RestoreTempOptions(s:L_1)
   endif
 endfunction
