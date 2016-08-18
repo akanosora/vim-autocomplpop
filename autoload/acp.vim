@@ -278,7 +278,7 @@ function s:GetCurrentWord()
   return matchstr(s:GetCurrentText(), '\k*$')
 endfunction
 
-" Check if buffer is modified
+" Check if the buffer is modified
 function s:IsModifiedSinceLastCall()
   if exists('s:pos_last')
     let pos_prev     = s:pos_last
@@ -304,24 +304,18 @@ function s:IsModifiedSinceLastCall()
 endfunction
 
 " Make current behavior set s:current_behavs
-" The function returns 1 if succeeds
-" 0 if no new behavior set is created
+" Return 1 if a new behavior set is created, 0 if otherwise
 function s:MakeCurrentBehaviorSet()
-  " s:current_behavs is a list with several completion
-  " behaviors for the current file type
-  " It will be cleared by s:ClearCurrentBehaviorSet()
   if exists('s:current_behavs[s:behav_idx].repeat')
         \ && s:current_behavs[s:behav_idx].repeat
     let s:current_behavs = [ s:current_behavs[s:behav_idx] ]
   elseif s:IsModifiedSinceLastCall()
-    " Make the behavior set only if
-    " the buffer has been modified since last call
+    " Make a behavior set only if the buffer has been modified since last call
     let s:current_behavs = copy(exists('g:acp_behavior[&filetype]')
           \ ? g:acp_behavior[&filetype]
           \ : g:acp_behavior['*'])
   else
-    " No need to create new behavior set
-    " if the buffer is not changed
+    " No need to create a behavior set if the buffer is unchanged
     call s:ClearCurrentBehaviorSet()
     return 0
   endif
@@ -353,9 +347,8 @@ function s:FeedPopup()
     endif
     return ''
   elseif s:MakeCurrentBehaviorSet()
-    " Improve the response by not to attempt any completion when 
-    " keyword characters are entered after a word which has been found with
-    " no completion candidate at the last attempt for completion
+    " Improve the response by not to attempt another completion
+    " after a word found with no completion candidate at the last attempt
     if exists('s:last_uncompletable') &&
           \ stridx(s:GetCurrentWord(), s:last_uncompletable.word) == 0 &&
           \ map(copy(s:current_behavs), 'v:val.command') ==# s:last_uncompletable.commands
