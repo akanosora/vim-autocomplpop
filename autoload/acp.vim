@@ -364,9 +364,7 @@ function s:FeedPopup()
       call s:SetTempOption(s:L_0, '&complete', g:acp_complete_option)
       call s:SetTempOption(s:L_0, '&completeopt', 'menuone' . (g:acp_completeopt_preview ? ',preview' : ''))
       call s:SetTempOption(s:L_0, '&completefunc', (exists('s:current_behavs[0].completefunc') ? s:current_behavs[0].completefunc : eval('&completefunc')))
-      " Switch on/off the &ignorecase option
       call s:SetTempOption(s:L_0, '&ignorecase', g:acp_ignorecase_option)
-      " Switch off the &spell option
       call s:SetTempOption(s:L_0, '&spell', 0)
       " If autocmd driven, set 'lazyredraw' to avoid flickering,
       " If key mapping driven, set 'nolazyredraw' to make the popup menu visible
